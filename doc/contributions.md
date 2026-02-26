@@ -9,10 +9,10 @@ This document tracks the specific tasks and responsibilities handled by each tea
 
 | Team Member | Tasks Handled |
 | :--- | :--- |
-| **Jash** | Drafted final Problem Statement, defined project Scope/Boundaries, and Stakeholders. |
-| **[Member 2 Name]** | Conducted Literature Review on current transformer-based toxicity detection. |
-| **[Member 3 Name]** | Researched existing commercial solutions and identified research gaps. |
-| **[Member 4 Name]** | Defined Success Criteria and selected performance benchmarks. |
+| **Jash** | Drafted final Problem Statement, defined project Scope/Boundaries, and Stakeholders. Conducted literature review |
+| **Sruthi** | - |
+| **Anirudh** | Researched existing commercial solutions and identified research gaps. |
+| **Kondaveeti Muralidhar** | Defined Success Criteria and selected performance benchmarks. |
 | **S Vasanth Bupathi** | Designed the project architecture diagram and drafted the Methodology section. |
 
 ---
