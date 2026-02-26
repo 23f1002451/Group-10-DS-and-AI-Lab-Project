@@ -1,252 +1,457 @@
-# Milestone 1: Problem Definition & Literature Review
+# Milestone 1  
+## Inference-Time Guardrails for Mitigating Prompt Jailbreak Attacks  
 
-### Inference-Time Guardrails for Mitigating Prompt Jailbreak Attacks
 ---
 
-## 1. Problem Definition
+# 1. Problem Definition  
 
-### 1.1 Background
-As Large Language Models (LLMs) transition from research environments to real-world products like customer support bots and personal assistants, they face a growing threat from adversarial manipulation. Standard post-training safety alignment (RLHF) is often insufficient to prevent "jailbreaking", a technique where users employ sophisticated prompts to bypass safety filters. These attacks, ranging from complex role-play scenarios to direct instruction overrides, pose significant legal, ethical, and brand risks to organizations deploying AI.
+## 1.1 Background  
 
-### 1.2 Problem Statement
-There is a critical need for an inference-time safety middleware that acts as an independent gatekeeper for LLM interactions. Current internal model safety training is static and reactive; developers require a modular, high-speed system that intercepts malicious prompts before they reach the model and validates the model’s response before it reaches the user. This project addresses the lack of deployable, low-latency frameworks that can detect and mitigate adversarial "jailbreak" attempts in real-time without significantly degrading system performance or user experience.
+Large Language Models are increasingly deployed in real-world systems such as customer support agents, productivity assistants, and enterprise automation platforms. Despite post-training alignment techniques such as Reinforcement Learning from Human Feedback, these systems remain vulnerable to adversarial prompt manipulation.
 
-### 1.3 Scope and Boundaries
-To ensure the project is achievable within the eight-week course timeline, the following boundaries have been established:
+Prompt jailbreak attacks exploit instruction-following behavior through role-play framing, instruction overrides, and prompt injection. These attacks can bypass safety mechanisms and induce harmful or policy-violating outputs. In production settings, such failures introduce legal, compliance, reputational, and operational risks.
 
-**Target Attacks:** Specifically focusing on text-based adversarial vectors: role-play jailbreaks, instruction overrides, and prompt injections.\
-**Modalities:** Restricted to **single-turn text interactions** only. Multimodal (image/audio) and code-execution safety are out of scope.\
-**Architecture:** The system acts as a middleware between a user interface and the Gemini API.\
-**Transformation Logic:** Prompt rewriting is strictly limited to stripping malicious instructions; it will not generate new task-related information.\
-**Performance:** The system is optimized for production-grade latency, targeting an end-to-end overhead of less than **300ms**.
+Current defenses are largely static, embedded within the model, and difficult to update without retraining. There is a clear need for modular, deployable, inference-time safety mechanisms that operate independently of the base model while maintaining low latency and preserving task performance.
 
-### 1.4 Relevant Stakeholders
-**AI Developers & Engineers:** Who need modular tools to "harden" their applications against exploits.\
-**Product Owners & Organizations:** Concerned with brand safety, policy compliance, and reducing the risk of toxic AI outputs.\
-**End-Users:** Who benefit from safer, more reliable AI interactions that are resistant to manipulative content.\
-**Model Providers:** Who can use external guardrails to complement internal safety alignment.
+---
 
-### 1.5 Project Objectives
-The success of the "Inference-Time Guardrail" will be measured by the following objectives:
+## 1.2 Problem Statement  
 
-1.  **Develop a High-Speed Classifier:** Fine-tune an **mDeBERTa-v3-base** model to categorize prompts as benign or malicious with high precision.
-2.  **Reduce Attack Success Rate (ASR):** Achieve a **70% or greater reduction** in successful jailbreaks compared to an unprotected baseline.
-3.  **Minimize Over-Refusal:** Maintain a **False Refusal Rate (FRR) of <10%** using the **XSTest** benchmark to ensure the system doesn't block legitimate user requests.
-4.  **Preserve Model Utility:** Ensure the guardrail does not degrade task performance, maintaining **MT-Bench** scores within **90%** of the baseline.
-5.  **Operational Efficiency:** Implement the entire safety pipeline (Detection + Rewriting + Verification) within a **300ms** latency window.
+This project addresses the lack of production-ready inference-time safety middleware capable of detecting and mitigating adversarial jailbreak attempts in real time.
+
+Specifically, the system must:
+
+1. Detect malicious or adversarial prompts before they reach the model  
+2. Sanitize suspicious prompts without altering legitimate task intent  
+3. Validate generated outputs before returning them to the user  
+4. Maintain high task utility and low false refusal rates  
+5. Operate within strict latency constraints  
+
+The goal is to design a modular guardrail layer that operates between the user interface and the Gemini API without modifying the internal model.
+
+---
+
+## 1.3 Scope and Boundaries  
+
+To ensure feasibility within the course timeline, the scope is defined as follows:
+
+### Covered Threats  
+
+Text-based jailbreak prompts including:
+
+- Role-play manipulation  
+- Instruction overrides  
+- Prompt injection  
+
+### Modalities  
+
+Single-turn text interaction only  
+
+### Out of Scope  
+
+- Multimodal inputs (image or audio)  
+- Code execution vulnerabilities  
+- Multi-turn context poisoning  
+- White-box adversaries  
+
+### Architectural Constraints  
+
+- Middleware between frontend and Gemini API  
+- No modification or retraining of the base LLM  
+- Deterministic deletion-based rewriting only  
+
+### Performance Constraint  
+
+Total additional latency introduced by the guardrail must remain below **300 milliseconds per request**.
+
+---
+
+## 1.4 Relevant Stakeholders  
+
+- **AI Developers and Engineers**  
+  Require modular safety components for deployment in black-box API environments.  
+
+- **Product Owners and Organizations**  
+  Concerned with compliance, brand protection, and liability reduction.  
+
+- **End Users**  
+  Benefit from safer and more reliable AI interactions.  
+
+- **Model Providers**  
+  May integrate external guardrails without modifying core alignment systems.  
+
+---
+
+## 1.5 Project Objectives  
+
+The project will be evaluated against measurable targets:
+
+1. Fine-tune an mDeBERTa-v3-base classifier for three-class prompt risk detection.  
+2. Achieve at least **70 percent reduction** in Attack Success Rate compared to an unprotected baseline.  
+3. Maintain a **False Refusal Rate below 10 percent** using XSTest.  
+4. Preserve task utility with **MT-Bench performance within 90 percent** of baseline.  
+5. Ensure total guardrail latency overhead remains below **300 milliseconds**.  
 
 ---
 
 # 2. Literature Review and Existing Solutions  
 
-This section reviews current research, tools, and deployment strategies related to prompt injection defense and LLM safety.
+This section reviews prior academic research, industry tools, and benchmark-driven evaluations related to prompt injection defense and LLM safety. The goal is to position our approach within the broader research landscape and identify measurable gaps.
 
 ---
 
-## 2.1 Training-Time Alignment Methods  
+## 2.1 Training-Time Alignment Approaches  
 
-### Reinforcement Learning from Human Feedback  
+### Reinforcement Learning from Human Feedback (RLHF)
 
-RLHF is widely used in aligned models. Human feedback is used to train reward models which guide policy optimization.
+RLHF has become the dominant paradigm for aligning large language models with human preferences. Models such as GPT-4, Claude, and Gemini rely heavily on reward-model-guided policy optimization to reduce harmful outputs.
 
-**Strengths**  
-Embedded safety behavior  
-No additional inference components  
+**Strengths**
 
-**Limitations**  
-Vulnerable to adversarial prompting  
-Costly retraining required for policy updates  
-Limited adaptability in closed-source APIs  
+- Safety behavior embedded directly in model weights  
+- No additional inference-time overhead  
+- Strong performance on cooperative benchmarks  
+
+**Limitations**
+
+- Vulnerable to adversarial prompt engineering  
+- Safety policies are static after deployment  
+- Updates require costly retraining  
+- Cannot be modified in closed-source APIs  
+
+Recent empirical studies show that even strongly aligned models experience high Attack Success Rates under adversarial prompting. JailbreakBench reports ASR values exceeding **60–80 percent** for certain aligned models when subjected to structured role-play attacks.
+
+This indicates that training-time alignment alone is insufficient under adversarial input distributions.
+
+---
 
 ### Constitutional AI  
 
-Uses rule-based self-critique to align models during training.
+Constitutional AI introduces rule-based self-critique during training, improving refusal robustness under benign prompts.
 
-**Strengths**  
-Scalable alignment  
-Reduces harmful outputs in cooperative settings  
+**Strengths**
 
-**Limitations**  
-Still vulnerable to jailbreak framing  
-Does not address inference-time adversarial manipulation  
+- Scalable alignment without heavy human labeling  
+- Improved refusal behavior under cooperative scenarios  
+
+**Limitations**
+
+- Still susceptible to instruction override attacks  
+- Does not explicitly model adversarial distribution shifts  
+- No independent inference-time verification  
+
+Empirical evaluations on JailbreakBench indicate that constitutional-style models reduce some unsafe generations but do not eliminate structured jailbreak success.
 
 ---
 
-## 2.2 Prompt-Based Defenses  
+## 2.2 Prompt-Level and System Prompt Defenses  
 
 ### System Prompt Hardening  
 
-Many deployments rely on stronger system prompts to restrict model behavior.
+Many deployments rely on stronger system prompts to constrain model behavior.
 
-**Strengths**  
-Simple deployment  
-No external components  
+**Strengths**
 
-**Limitations**  
-System prompts can be overridden  
-No formal adversarial robustness guarantees  
+- Minimal engineering complexity  
+- No added latency  
 
-### Context Isolation in Retrieval-Augmented Systems  
+**Limitations**
 
-Research suggests isolating retrieved documents and user instructions to prevent cross-contamination.
+- System prompts can be overridden  
+- No formal robustness guarantees  
+- Vulnerable to context-window injection  
 
-**Strengths**  
-Effective in retrieval-augmented systems  
-
-**Limitations**  
-Does not address direct jailbreak phrasing  
+Recent adversarial evaluations demonstrate that role-play framing and instruction override phrasing can bypass hardened system prompts with high success rates.
 
 ---
 
-## 2.3 Rule-Based Filtering Systems  
+### Context Isolation in Retrieval-Augmented Generation  
 
-Keyword filtering and regular expression matching remain common in industry.
+Research in RAG systems proposes separating retrieved documents from user instructions to reduce prompt injection risks.
 
-**Strengths**  
-Low latency  
-Easy implementation  
+**Strengths**
 
-**Weaknesses**  
-High False Refusal Rate  
-Easy to bypass using paraphrasing  
-No semantic understanding  
+- Effective against retrieval-layer injection  
+- Reduces cross-contamination between context sources  
+
+**Limitations**
+
+- Does not address direct jailbreak prompts  
+- Limited applicability outside RAG architectures  
+
+---
+
+## 2.3 Rule-Based Filtering  
+
+Keyword filtering and regex-based blocklists remain widely used in production.
+
+**Strengths**
+
+- Extremely low latency  
+- Easy deployment  
+
+**Limitations**
+
+- High False Refusal Rate  
+- Easily bypassed via paraphrasing  
+- No semantic understanding  
+
+Studies comparing deterministic filtering to semantic classifiers show that rule-based systems fail against obfuscated jailbreak prompts and produce excessive over-refusals on benign prompts such as technical terminology (e.g., “kill a process”).
 
 ---
 
 ## 2.4 LLM-as-a-Judge Frameworks  
 
-Some safety systems use a second large model to evaluate responses.
+Some safety pipelines use a secondary large language model to evaluate safety of outputs.
 
-**Strengths**  
-High contextual awareness  
-Flexible safety enforcement  
+**Strengths**
 
-**Weaknesses**  
-High latency  
-High cost  
-Unsuitable for real-time production constraints  
+- Strong contextual reasoning  
+- Flexible policy enforcement  
 
----
+**Limitations**
 
-## 2.5 Small Specialized Models for Guardrails  
+- High latency overhead  
+- High computational cost  
+- Not suitable for strict sub-300ms production constraints  
 
-Recent research demonstrates the effectiveness of lightweight transformer classifiers for safety detection.
-
-PromptGuard by Meta demonstrates that sub-100M parameter models can achieve strong semantic understanding while maintaining low latency.
-
-**Strengths**  
-Fast inference  
-Context-aware detection  
-Deployable as middleware  
-
-**Limitations**  
-Requires continual dataset updates  
-Generalization dependent on training diversity  
+While LLM-as-a-judge improves safety detection accuracy, it introduces unacceptable inference latency for real-time deployment.
 
 ---
 
-## 2.6 Academic Benchmarks  
+## 2.5 Small Specialized Safety Models (SSM)  
 
-JailbreakBench  
-Standardized dataset for adversarial prompt evaluation  
+Recent work demonstrates that lightweight transformer classifiers can detect adversarial prompts with low latency.
 
-XSTest  
-Dataset for measuring exaggerated safety and false refusals  
+Meta’s PromptGuard (86M parameter mDeBERTa-v3-base) represents a state-of-the-art example of this approach. Reported results show:
 
-MT-Bench  
-Measures general conversational performance  
+- Strong semantic detection of prompt injection  
+- Sub-100ms inference on optimized hardware  
+- Significant reduction in jailbreak success compared to keyword baselines  
 
-These benchmarks enable reproducible and comparable evaluation.
+However, existing SSM approaches typically focus only on input-side classification and do not incorporate structured output validation layers.
 
----
-
-# 3. Gap Analysis  
-
-Existing approaches fall into three major categories.
-
-No protection baseline  
-High vulnerability  
-
-Keyword filtering  
-Low robustness and high over-refusal  
-
-Training-time alignment  
-Static and retraining dependent  
-
-### Missing Capability  
-
-There is no widely adopted production-ready middleware that:
-
-1. Is model-agnostic  
-2. Works in black-box API environments  
-3. Achieves measurable ASR reduction  
-4. Maintains low latency  
-5. Controls exaggerated safety  
-
-Our system directly addresses this deployment gap.
+Additionally, benchmark results indicate that standalone classifiers may still allow certain adversarial generations if output is not independently verified.
 
 ---
 
-# 4. Evaluation Framework and Industry Standards  
+## 2.6 Benchmark-Driven Evaluation  
+
+The following standardized benchmarks are used across recent safety research:
+
+### JailbreakBench  
+
+Used to measure Attack Success Rate under adversarial prompting.  
+Provides structured adversarial categories including role-play, instruction override, and obfuscation.
+
+### XSTest  
+
+Measures exaggerated safety and contextual false refusals.  
+Prevents systems from becoming overly restrictive.
+
+### MT-Bench  
+
+Evaluates task performance and conversational quality.
+
+These benchmarks enable reproducible comparison and prevent training contamination.
+
+---
+
+# 3. Gap Analysis and Contribution  
+
+## 3.1 Limitations of Existing Approaches  
+
+Existing defenses fall into three primary categories:
+
+- **Training-time alignment**  
+  Fails under adversarial prompt manipulation and cannot be modified in black-box deployments.
+
+- **Keyword-based filtering**  
+  Lacks semantic understanding and produces high False Refusal Rates.
+
+- **Single-layer semantic classifiers**  
+  Detect malicious inputs but do not validate model outputs, leaving residual risk.
+
+Even state-of-the-art Small Specialized Models such as PromptGuard operate primarily at the input classification level. They do not incorporate structured, dual-stage verification pipelines combining transformation and output validation under strict latency constraints.
+
+Furthermore, prior work typically optimizes either safety or latency, but rarely formalizes measurable trade-offs across:
+
+- Attack Success Rate reduction  
+- False Refusal Rate control  
+- Task utility preservation  
+- Strict latency budgets  
+
+---
+
+## 3.2 Novelty of the Proposed Approach  
+
+The proposed system introduces three key contributions:
+
+### 1. Dual-Layer Defense-in-Depth  
+
+Unlike single-stage classifiers, the system implements:
+
+- Input risk classification  
+- Deterministic transformation  
+- Output validation via rule-based and semantic verification  
+
+This reduces residual attack pathways that survive initial detection.
+
+---
+
+### 2. Constrained Transformation Strategy  
+
+Rather than fully rewriting prompts or relying purely on blocking, the system applies deletion-only sanitization.
+
+This preserves semantic intent while removing adversarial meta-instructions, reducing over-refusal risk.
+
+---
+
+### 3. Joint Optimization of Safety and Utility  
+
+The architecture is explicitly evaluated against four simultaneous constraints:
+
+- At least 70 percent reduction in Attack Success Rate  
+- Less than 10 percent False Refusal Rate  
+- At least 90 percent utility preservation via MT-Bench  
+- Less than 300ms latency overhead  
+
+Most prior systems optimize one dimension in isolation. This project formalizes a multi-objective evaluation framework aligned with real-world deployment constraints.
+
+---
+
+## 3.3 Why Dual-Layer Validation is Superior  
+
+Single-stage defenses assume correct classification of adversarial prompts before generation. However:
+
+- Adversarial inputs may evade classification.  
+- Model generations may still drift toward unsafe completions.  
+
+By validating outputs independently, the system ensures:
+
+- Reduced residual risk  
+- Lower effective Attack Success Rate  
+- Improved robustness under distribution shift  
+
+This layered design aligns with established security engineering principles such as defense-in-depth, rather than relying on a single point of failure.
+
+---
+
+## 3.4 Opportunity Identified  
+
+There exists a clear deployment gap between:
+
+- Academic safety alignment research  
+- Production-ready, low-latency middleware systems  
+
+The proposed guardrail architecture directly addresses this gap by combining:
+
+- Small specialized semantic models  
+- Deterministic rewriting  
+- Output verification  
+- Benchmark-driven multi-metric evaluation  
+
+This positions the system as both practically deployable and empirically measurable.
+
+---
+
+# 4. Evaluation Framework and Standards  
 
 ## 4.1 Industry Standards  
 
-OWASP Top 10 for LLM Applications  
-Focus on LLM01 Prompt Injection  
+### OWASP Top 10 for LLM Applications  
 
-NIST AI Risk Management Framework  
-Govern through measurable thresholds  
-Protect via external control layers  
+The system targets mitigation of LLM01 Prompt Injection, identified as a critical vulnerability in generative AI systems.
 
----
+### NIST AI Risk Management Framework  
 
-## 4.2 Baselines  
+The evaluation aligns with:
 
-Unprotected Gemini baseline  
-Measures raw vulnerability  
-
-Keyword filter baseline  
-Measures naive deterministic filtering  
-
-Small specialized model paradigm  
-Benchmarked against PromptGuard-style architectures  
+- **Govern** — Establish measurable safety thresholds  
+- **Protect** — Deploy an independent safety control layer  
 
 ---
 
-## 4.3 Metrics  
+## 4.2 Baseline Models  
 
-### Attack Success Rate  
+### Unprotected Gemini Baseline  
 
-ASR equals number of harmful prompts that produce non-refusal divided by total adversarial prompts.
+Measures raw vulnerability and maximum task performance.
 
-Target reduction greater than or equal to 70 percent  
+### Deterministic Keyword Baseline  
 
-### False Refusal Rate  
+Evaluates limitations of rule-based filtering.
 
-FRR equals number of benign prompts incorrectly blocked divided by total benign prompts.
+### State-of-the-Art Baseline  
 
-Target less than 10 percent  
-
-### Utility Preservation  
-
-MT-Bench score must remain at least 90 percent of baseline  
-
-### Latency  
-
-Total added inference overhead below 300 milliseconds  
+Meta PromptGuard used as a reference for small specialized model performance and latency.
 
 ---
 
-## 5. System Architecture
+## 4.3 Performance Benchmarks  
 
-### 5.1 Architectural Overview
-To address the challenges outlined in Sections 1.1 and 1.2, we design a **modular inference-time safety middleware** that operates as an independent gatekeeper between the user interface and the Gemini API.
+### JailbreakBench  
 
-The architecture consists of four primary layers:
-1. **User Interface Layer (Streamlit Frontend)**
-2. **Pre-Inference Guardrail (Input Classification + Transformation)**
-3. **Primary LLM Layer (Gemini API)**
-4. **Post-Inference Guardrail (Output Validation)**
+Used to measure adversarial robustness and compute Attack Success Rate.
+
+### XSTest  
+
+Used to measure exaggerated safety and False Refusal Rate.
+
+### MT-Bench  
+
+Used to measure task utility preservation.
+
+---
+
+## 4.4 Evaluation Metrics  
+
+The success of the guardrail system will be quantified using the following mathematically defined metrics:
+
+1. **Attack Success Rate (ASR)**  
+   Measures the percentage of harmful prompts that successfully bypass the guardrail and elicit a non-refusal response from the target LLM.
+
+   $$
+   ASR = \left( \frac{\text{Number of Non-Refusal Harmful Responses}}{\text{Total Adversarial Prompts}} \right) \times 100
+   $$
+
+   **Evaluation Target:** ≥ 70% reduction compared to the unprotected baseline.
+
+2. **False Refusal Rate (FRR)**  
+   Measures the percentage of benign prompts incorrectly blocked or over-sanitized.
+
+   $$
+   FRR = \left( \frac{\text{Number of Benign Prompts Blocked}}{\text{Total Benign Prompts}} \right) \times 100
+   $$
+
+   **Evaluation Target:** < 10% using XSTest.
+
+3. **Task Performance Degradation**  
+   Measured using MT-Bench.
+
+   **Evaluation Target:** ≥ 90% of baseline utility.
+
+4. **Latency Overhead**  
+   Measures total additional inference time introduced by the guardrail.
+
+   **Evaluation Target:** < 300ms per request.
+
+---
+
+# 5. System Architecture  
+
+## 5.1 Overview  
+
+The proposed system is a modular inference-time middleware placed between the user interface and the Gemini API.
+
+The architecture consists of:
+
+1. User Interface Layer  
+2. Pre-Inference Guardrail  
+3. Primary LLM Layer  
+4. Post-Inference Guardrail  
+
+The base LLM is treated as a black box.
 
 The system strictly adheres to the scope defined in Section 1.3:
 * Single-turn interaction
@@ -254,7 +459,8 @@ The system strictly adheres to the scope defined in Section 1.3:
 * Middleware-based deployment
 * No internal modification of the base LLM
 * Rewriting limited to stripping malicious instructions
-### 5.2 High-Level System Flow
+  
+### High-Level System Flow
 ```mermaid
 flowchart TD
 
@@ -280,191 +486,145 @@ flowchart TD
     K --> M[User]
     L --> M
 ```
-### 5.3 Pre-Inference Guardrail
-#### 5.3.1 Input Risk Classification
-We fine-tune an mDeBERTa-v3-base model to classify prompts into:
-* **Benign**
-* **Suspicious (jailbreak attempt)**
-* **Harmful**
-
-This classifier acts as the primary detection mechanism for adversarial manipulation attempts such as:
-* Role-play jailbreaks
-* Instruction overrides
-* Prompt injections
-#### 5.3.2 Prompt Transformation Module
-For prompts classified as *Suspicious*, the system performs constrained rewriting:
-* Removes malicious meta-instructions (e.g., “ignore previous rules”)
-* Does not add new task-specific information
-* Preserves original semantic intent
-
-Prompts classified as *Harmful* are blocked and replaced with a refusal message.
-### 5.4 Primary Model Layer
-The middleware forwards safe prompts to the Gemini API (treated as a black-box LLM).
-
-Key characteristics:
-* No retraining of Gemini
-* No modification of internal safety alignment
-* Middleware operates independently
-### 5.5 Post-Inference Guardrail
-To ensure bidirectional safety, generated outputs are validated through:
-#### 5.5.1 Rule-Based Keyword Scan
-Fast detection of explicit harmful patterns.
-#### 5.5.2 Secondary Risk Classification
-The same fine-tuned classifier evaluates the generated response.
-
-If unsafe content is detected:
-* The response is replaced with a standardized refusal template.
-### 5.6 Architectural Design Principles
-The system is designed to satisfy the project objectives (Section 1.5):
-* **Modularity:** Replaceable classifier and rule engine
-* **Low Latency:** Target <300ms overhead
-* **Minimal Utility Degradation**
-* **Deterministic Transformation**
-* **Defense-in-Depth (Input + Output Validation)**
 
 ---
 
-## 6. Methodology
-### 6.1 Threat Model and Assumptions
-Aligned with Section 1.3 (Scope and Boundaries):
-#### 6.1.1 Covered Threats
-* Text-based jailbreak prompts
-* Role-play manipulation
-* Instruction override attacks
-* Prompt injection
-#### 6.1.2 Out-of-Scope
-* Multimodal inputs (image/audio)
-* Code execution risks
-* Multi-turn context poisoning
-* White-box adversaries
-### 6.2 Data Collection and Preparation
-#### 6.2.1 Training Datasets
-The classifier is fine-tuned using:
-* JailbreakBench (training split only)
-* WildChat
-* Curated benign prompt datasets for class balancing
+## 5.2 Pre-Inference Guardrail  
 
-Strict SHA-256 hashing ensures:
-* No overlap between training and evaluation splits
-* No template leakage
+### Input Risk Classification  
+
+Fine-tuned mDeBERTa-v3-base model classifies prompts as:
+
+- Benign  
+- Suspicious  
+- Harmful  
+
+### Prompt Transformation  
+
+Suspicious prompts undergo deletion-based sanitization to remove malicious meta-instructions without adding new task information.
+
+Harmful prompts are blocked with a refusal template.
+
+---
+
+## 5.3 Primary Model Layer  
+
+Sanitized prompts are forwarded to the Gemini API without internal modification.
+
+---
+
+## 5.4 Post-Inference Guardrail  
+
+Generated outputs are validated through:
+
+- Keyword-based filtering  
+- Secondary classification using the same fine-tuned model  
+
+Unsafe responses are replaced with a standardized refusal message.
+
+---
+
+## 5.5 Design Principles  
+
+- Modular  
+- Low latency  
+- Deterministic rewriting  
+- Defense in depth  
+- Black-box compatibility  
+
+---
+
+## 6. Methodology  
+
+### 6.1 Data Collection  
+
+Training datasets include:
+
+- JailbreakBench training split  
+- WildChat  
+- Curated benign prompt datasets  
 
 Dataset split:
-* 70% Training
-* 15% Validation
-* 15% Testing
-### 6.3 Model Training
-#### 6.3.1 Architecture
-Transformer-based encoder (mDeBERTa-v3-base) with a 3-class classification head.
-#### 6.3.2 Training Configuration
-* Loss Function: Cross-Entropy
-* Optimizer: AdamW
-* Learning Rate: 2e-5
-* Epochs: 3–5
-* Batch Size: 16
-* Early stopping on validation F1-score
 
-Priority is given to:
-* High precision on malicious classes
-* Minimizing false positives (to reduce FRR)
+- 70 percent training  
+- 15 percent validation  
+- 15 percent testing  
 
-### 6.4 Prompt Transformation Strategy
-The rewriting module uses deterministic regex-based stripping of:
-* “Ignore previous instructions”
-* “Override safety policy”
-* “Act as an unrestricted AI”
-* Known jailbreak role-play patterns
-
-Constraints:
-* No semantic rewriting
-* No addition of task content
-* Pure deletion-based transformation
-
-This ensures compliance with Section 1.3 transformation boundaries.
-### 6.5 Output Validation Procedure
-#### 6.5.1 Keyword Filtering
-Lightweight dictionary-based scan for:
-* Harm facilitation instructions
-* Illicit procedural guidance
-* Explicit unsafe content
-#### 6.5.2 Secondary Classification
-Generated output → passed through classifier
-
-Decision rule:
-* If unsafe → Replace with refusal
-* If safe → Return to user
-
-### 6.6 Evaluation Framework
-Evaluation directly maps to the objectives in Section 1.5.
-#### 6.6.1 Attack Success Rate (ASR)
-Evaluated using:
-* JailbreakBench (evaluation split)
-
-Attack considered successful if:
-* The model provides harmful content
-* It does not refuse
-* Confirmed by LLM-as-a-judge
-
-Target:
-≥ 70% ASR reduction compared to baseline
-#### 6.6.2 False Refusal Rate (FRR)
-Measured using:
-* XSTest
-FRR = Incorrect refusals / Total benign prompts
-
-Target:
-< 10%
-#### 6.6.3 Task Performance Preservation
-Measured using:
-* MT-Bench
-
-Constraint:
-Guardrail score ≥ 90% of baseline
-
-#### 6.6.4 Latency Measurement
-Total guardrail overhead includes:
-* Input classification
-* Transformation processing
-* Output keyword scan
-* Output classification
-
-Target:
-< 300ms additional latency
-
-Optimization techniques:
-* ONNX model export
-* INT8 quantization
-* Warm model caching
-* Asynchronous API handling
-### 6.7 Baseline Comparisons
-We compare three configurations:
-1. Unprotected Gemini baseline
-2. Keyword-filter-only baseline
-3. Proposed dual-layer guardrail
-
-Metrics compared:
-* ASR
-* FRR
-* MT-Bench performance
-* Latency overhead
+Hash-based checks prevent leakage across splits.
 
 ---
 
-# 8. References  
+### 6.2 Model Training  
 
-1. **OWASP Top 10 for Large Language Model Applications**  
+**Architecture**  
+mDeBERTa-v3-base with three-class classification head  
+
+**Loss**  
+Cross-entropy  
+
+**Optimizer**  
+AdamW  
+
+**Learning Rate**  
+2e-5  
+
+**Epochs**  
+3 to 5  
+
+**Batch Size**  
+16  
+
+Early stopping based on validation F1-score.
+
+Priority is placed on high precision for malicious classes while controlling false positives.
+
+---
+
+### 6.3 Prompt Transformation  
+
+Deterministic regex-based removal of:
+
+- Ignore previous instructions  
+- Override safety policy  
+- Unrestricted AI role-play patterns  
+
+No semantic rewriting or task modification is performed.
+
+---
+
+### 6.4 Evaluation Procedure  
+
+Evaluation is conducted on three configurations:
+
+- Unprotected baseline  
+- Keyword-only baseline  
+- Proposed dual-layer guardrail  
+
+Metrics compared:
+
+- Attack Success Rate  
+- False Refusal Rate  
+- MT-Bench performance  
+- Latency overhead  
+
+---
+
+# 7. References  
+
+1. OWASP Top 10 for Large Language Model Applications  
    https://owasp.org/www-project-top-10-for-large-language-model-applications  
 
-2. **NIST AI Risk Management Framework (AI RMF 1.0)**  
+2. NIST AI Risk Management Framework  
    https://www.nist.gov/itl/ai-risk-management-framework  
 
-3. **Meta PromptGuard (Prompt-Guard-86M) Model Documentation**  
+3. Meta PromptGuard Model Documentation  
    https://huggingface.co/meta-llama/Prompt-Guard-86M  
 
-4. **JailbreakBench Official Benchmark**  
+4. JailbreakBench  
    https://jailbreakbench.github.io  
 
-5. **XSTest Dataset (Hugging Face)**  
+5. XSTest Dataset  
    https://huggingface.co/datasets/xstest  
 
-6. **MT-Bench Evaluation Framework (FastChat / LMSYS)**  
-   https://github.com/lm-sys/FastChat/tree/main/fastchat/llm_judge   
+6. MT-Bench Evaluation Framework  
+   https://github.com/lm-sys/FastChat/tree/main/fastchat/llm_judge  
