@@ -35,7 +35,205 @@ The success of the "Inference-Time Guardrail" will be measured by the following 
 4.  **Preserve Model Utility:** Ensure the guardrail does not degrade task performance, maintaining **MT-Bench** scores within **90%** of the baseline.
 5.  **Operational Efficiency:** Implement the entire safety pipeline (Detection + Rewriting + Verification) within a **300ms** latency window.
 
-Below is your revised document with **System Architecture as Section 5** and **Methodology as Section 6**, continuing numbering naturally from Sections 1.1–1.5.
+---
+
+# 2. Literature Review and Existing Solutions  
+
+This section reviews current research, tools, and deployment strategies related to prompt injection defense and LLM safety.
+
+---
+
+## 2.1 Training-Time Alignment Methods  
+
+### Reinforcement Learning from Human Feedback  
+
+RLHF is widely used in aligned models. Human feedback is used to train reward models which guide policy optimization.
+
+**Strengths**  
+Embedded safety behavior  
+No additional inference components  
+
+**Limitations**  
+Vulnerable to adversarial prompting  
+Costly retraining required for policy updates  
+Limited adaptability in closed-source APIs  
+
+### Constitutional AI  
+
+Uses rule-based self-critique to align models during training.
+
+**Strengths**  
+Scalable alignment  
+Reduces harmful outputs in cooperative settings  
+
+**Limitations**  
+Still vulnerable to jailbreak framing  
+Does not address inference-time adversarial manipulation  
+
+---
+
+## 2.2 Prompt-Based Defenses  
+
+### System Prompt Hardening  
+
+Many deployments rely on stronger system prompts to restrict model behavior.
+
+**Strengths**  
+Simple deployment  
+No external components  
+
+**Limitations**  
+System prompts can be overridden  
+No formal adversarial robustness guarantees  
+
+### Context Isolation in Retrieval-Augmented Systems  
+
+Research suggests isolating retrieved documents and user instructions to prevent cross-contamination.
+
+**Strengths**  
+Effective in retrieval-augmented systems  
+
+**Limitations**  
+Does not address direct jailbreak phrasing  
+
+---
+
+## 2.3 Rule-Based Filtering Systems  
+
+Keyword filtering and regular expression matching remain common in industry.
+
+**Strengths**  
+Low latency  
+Easy implementation  
+
+**Weaknesses**  
+High False Refusal Rate  
+Easy to bypass using paraphrasing  
+No semantic understanding  
+
+---
+
+## 2.4 LLM-as-a-Judge Frameworks  
+
+Some safety systems use a second large model to evaluate responses.
+
+**Strengths**  
+High contextual awareness  
+Flexible safety enforcement  
+
+**Weaknesses**  
+High latency  
+High cost  
+Unsuitable for real-time production constraints  
+
+---
+
+## 2.5 Small Specialized Models for Guardrails  
+
+Recent research demonstrates the effectiveness of lightweight transformer classifiers for safety detection.
+
+PromptGuard by Meta demonstrates that sub-100M parameter models can achieve strong semantic understanding while maintaining low latency.
+
+**Strengths**  
+Fast inference  
+Context-aware detection  
+Deployable as middleware  
+
+**Limitations**  
+Requires continual dataset updates  
+Generalization dependent on training diversity  
+
+---
+
+## 2.6 Academic Benchmarks  
+
+JailbreakBench  
+Standardized dataset for adversarial prompt evaluation  
+
+XSTest  
+Dataset for measuring exaggerated safety and false refusals  
+
+MT-Bench  
+Measures general conversational performance  
+
+These benchmarks enable reproducible and comparable evaluation.
+
+---
+
+# 3. Gap Analysis  
+
+Existing approaches fall into three major categories.
+
+No protection baseline  
+High vulnerability  
+
+Keyword filtering  
+Low robustness and high over-refusal  
+
+Training-time alignment  
+Static and retraining dependent  
+
+### Missing Capability  
+
+There is no widely adopted production-ready middleware that:
+
+1. Is model-agnostic  
+2. Works in black-box API environments  
+3. Achieves measurable ASR reduction  
+4. Maintains low latency  
+5. Controls exaggerated safety  
+
+Our system directly addresses this deployment gap.
+
+---
+
+# 4. Evaluation Framework and Industry Standards  
+
+## 4.1 Industry Standards  
+
+OWASP Top 10 for LLM Applications  
+Focus on LLM01 Prompt Injection  
+
+NIST AI Risk Management Framework  
+Govern through measurable thresholds  
+Protect via external control layers  
+
+---
+
+## 4.2 Baselines  
+
+Unprotected Gemini baseline  
+Measures raw vulnerability  
+
+Keyword filter baseline  
+Measures naive deterministic filtering  
+
+Small specialized model paradigm  
+Benchmarked against PromptGuard-style architectures  
+
+---
+
+## 4.3 Metrics  
+
+### Attack Success Rate  
+
+ASR equals number of harmful prompts that produce non-refusal divided by total adversarial prompts.
+
+Target reduction greater than or equal to 70 percent  
+
+### False Refusal Rate  
+
+FRR equals number of benign prompts incorrectly blocked divided by total benign prompts.
+
+Target less than 10 percent  
+
+### Utility Preservation  
+
+MT-Bench score must remain at least 90 percent of baseline  
+
+### Latency  
+
+Total added inference overhead below 300 milliseconds  
 
 ---
 
@@ -249,3 +447,24 @@ Metrics compared:
 * MT-Bench performance
 * Latency overhead
 
+---
+
+# 8. References  
+
+1. **OWASP Top 10 for Large Language Model Applications**  
+   https://owasp.org/www-project-top-10-for-large-language-model-applications  
+
+2. **NIST AI Risk Management Framework (AI RMF 1.0)**  
+   https://www.nist.gov/itl/ai-risk-management-framework  
+
+3. **Meta PromptGuard (Prompt-Guard-86M) Model Documentation**  
+   https://huggingface.co/meta-llama/Prompt-Guard-86M  
+
+4. **JailbreakBench Official Benchmark**  
+   https://jailbreakbench.github.io  
+
+5. **XSTest Dataset (Hugging Face)**  
+   https://huggingface.co/datasets/xstest  
+
+6. **MT-Bench Evaluation Framework (FastChat / LMSYS)**  
+   https://github.com/lm-sys/FastChat/tree/main/fastchat/llm_judge   
