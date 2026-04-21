@@ -1,0 +1,22 @@
+[theme]
+base            = "dark"
+primaryColor    = "#3b82f6"
+backgroundColor = "#0f172a"
+secondaryBackgroundColor = "#1e293b"
+textColor       = "#f1f5f9"
+font            = "sans serif"
+
+[server]
+# Increase the max upload size to 400 MB — needed if users upload
+# large files, and also ensures the app does not reject large model
+# responses.
+maxUploadSize   = 400
+headless        = true
+
+[runner]
+# Suppress the "missing ScriptRunContext" warning that appears in some
+# log lines when cached functions are called during initial load.
+magicEnabled    = false
+
+[browser]
+gatherUsageStats = false
