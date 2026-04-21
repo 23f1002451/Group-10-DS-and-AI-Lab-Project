@@ -13,6 +13,9 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Secrets
+.streamlit/secrets.toml
+
 # Workspace
 .vscode/
 .idea/
