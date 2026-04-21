@@ -1,0 +1,33 @@
+# Environments
+venv/
+.venv/
+env/
+.env
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Workspace
+.vscode/
+.idea/
+.gemini/
+.agent/
+
+# Build and Distribution
+dist/
+build/
+*.egg-info/
+
+# Data and Models
+outputs/
+eval_outputs/
+models/*.pt
+models/*.pth
+models/*.bin
+data/cache/
