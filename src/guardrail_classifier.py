@@ -26,7 +26,7 @@ class GuardrailModel(nn.Module):
     variable-length adversarial prompts.
     """
 
-    def __init__(self, model_name: str, dropout: float = 0.3) -> None:
+    def __init__(self, model_name: str, dropout: float = 0.2) -> None:
         super().__init__()
         self.encoder = AutoModel.from_pretrained(model_name)
         self.drop = nn.Dropout(dropout)
