@@ -121,12 +121,15 @@ The authoritative training and evaluation pipeline is implemented in Kaggle note
 
 ### Training and Evaluation
 
-1. Open notebooks/Final Classifier.ipynb on Kaggle.
-2. Enable a T4 GPU accelerator in the notebook settings.
-3. Attach the required datasets (instructions in the notebook).
-4. Execute all cells sequentially.
+This is the strictly preferred and supported method for reproducing all results.
 
-The notebook trains the model, performs threshold optimization, and produces the full evaluation including confusion matrices, error analysis, per-class metrics, threshold sweep visualizations, and the OOD demonstration. Expected runtime: 10 to 15 minutes.
+1. **Import:** Download the `notebooks/Final Classifier.ipynb` file from this repository and import it into Kaggle (via the "Import" button on the Kaggle Notebooks page).
+2. **Hardware:** In the notebook settings on the right panel, set the Accelerator to **GPU T4** (or T4 x2).
+3. **Secrets:** Navigate to the Add-ons menu, select "Secrets", and add a new secret labeled `GEMINI_API_KEY` containing your actual Gemini API key. Ensure the secret is attached to the notebook.
+4. **Data:** Attach the required datasets (specific instructions and links are provided inside the notebook).
+5. **Execute:** Click "Run All" to execute all cells sequentially.
+
+The notebook automatically trains the model, performs threshold optimization, and produces the full evaluation including confusion matrices, error analysis, per-class metrics, threshold sweep visualizations, and the OOD demonstration. Expected runtime: 10 to 15 minutes.
 
 ### Hyperparameter Tuning
 
