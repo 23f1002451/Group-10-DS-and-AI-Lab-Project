@@ -17,9 +17,9 @@ Architecture (single-turn, text-only):
         |-- harmful                          ->  BLOCK (replace with refusal)
         +-- safe                             ->  RETURN
 
-Default thresholds derive from Final Guardrail.ipynb FINAL_CONFIG:
-    T_BLOCK     : 0.8
-    T_TRANSFORM : 0.3
+Default thresholds derive from Final Classifier.ipynb threshold sweep:
+    T_BLOCK     : 0.15
+    T_TRANSFORM : 0.07
 """
 from __future__ import annotations
 
@@ -50,8 +50,8 @@ class PipelineConfig:
     checkpoint_path: Path
     enable_rule_filter: bool = True
     max_length: int = 512
-    block_threshold: float = 0.8
-    transform_threshold: float = 0.3
+    block_threshold: float = 0.15
+    transform_threshold: float = 0.07
     enable_output_guardrail: bool = True
     output_block_threshold: float = 0.8
     input_refusal_message: str = (
@@ -124,8 +124,8 @@ class GuardrailPipeline:
         cls,
         checkpoint_path: str | Path,
         enable_rule_filter: bool = True,
-        block_threshold: float = 0.8,
-        transform_threshold: float = 0.3,
+        block_threshold: float = 0.15,
+        transform_threshold: float = 0.07,
         enable_output_guardrail: bool = True,
     ) -> "GuardrailPipeline":
         checkpoint_path = Path(checkpoint_path)
