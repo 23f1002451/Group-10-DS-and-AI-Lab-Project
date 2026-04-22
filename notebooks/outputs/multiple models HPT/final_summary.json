@@ -1,0 +1,116 @@
+{
+  "best_config": {
+    "MAX_LENGTH": 512,
+    "BATCH_SIZE": 4,
+    "LEARNING_RATE": 5e-05,
+    "WEIGHT_DECAY": 0.05,
+    "WARMUP_RATIO": 0.05,
+    "DROPOUT": 0.3,
+    "GRADIENT_CLIP": 1.0,
+    "EPOCHS": 5,
+    "EARLY_STOPPING_PATIENCE": 3,
+    "LABEL_SMOOTHING": 0.1,
+    "W_F1": 0.3,
+    "W_ASR": 0.5,
+    "W_FRR": 0.2
+  },
+  "thresholds": {
+    "model_only": {
+      "t_block": 0.45,
+      "t_transform": 0.2
+    },
+    "with_regex": {
+      "t_block": 0.45,
+      "t_transform": 0.2
+    }
+  },
+  "test_results": {
+    "model_only": {
+      "accuracy": 0.8798,
+      "macro_f1": 0.8771,
+      "per_class_f1": {
+        "benign": 0.9,
+        "jailbreak": 0.8552,
+        "harmful": 0.876
+      },
+      "asr": {
+        "overall": 0.0611,
+        "jailbreak": 0.0811,
+        "harmful": 0.0351
+      },
+      "frr": 0.1176,
+      "cm": [
+        [
+          90,
+          7,
+          5
+        ],
+        [
+          6,
+          62,
+          6
+        ],
+        [
+          2,
+          2,
+          53
+        ]
+      ],
+      "score": 0.90906
+    },
+    "full_pipeline": {
+      "accuracy": 0.8627,
+      "macro_f1": 0.8569,
+      "per_class_f1": {
+        "benign": 0.9,
+        "jailbreak": 0.8227,
+        "harmful": 0.848
+      },
+      "asr": {
+        "overall": 0.0611,
+        "jailbreak": 0.0811,
+        "harmful": 0.0351
+      },
+      "frr": 0.1176,
+      "cm": [
+        [
+          90,
+          7,
+          5
+        ],
+        [
+          6,
+          58,
+          10
+        ],
+        [
+          2,
+          2,
+          53
+        ]
+      ],
+      "score": 0.903
+    }
+  },
+  "roc_auc": 0.9505313575812004,
+  "pr_auc": 0.9404999223336309,
+  "latency": {
+    "regex_ms": 0.029,
+    "model_ms": 2.698,
+    "total_ms": 2.727
+  },
+  "error_analysis": {
+    "total": 32,
+    "by_mode": {
+      "FP_benign_blocked": 12,
+      "MIS_wrong_attack_type": 12,
+      "FN_missed_attack": 8
+    }
+  },
+  "layer_attribution": {
+    "L2_Model": 125,
+    "L3_Allow": 98,
+    "L1_Regex": 10
+  },
+  "hpo_trials": 33
+}
