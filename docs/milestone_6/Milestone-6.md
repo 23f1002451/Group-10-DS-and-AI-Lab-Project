@@ -54,10 +54,8 @@ The application is deployed as an interactive web interface where users can subm
 
 ### Links
 
-* 🔗 Live App: `[ADD LINK]`
-* 🔗 Deployment Instructions: `README.md` or `/deployment/README.md`
-* 🔗 Source Code: `/app/`
-* 🔗 Kaggle (experiments/training): `[ADD LINK IF SHARED]`
+* 🔗 Live App: [Click here](https://huggingface.co/spaces/DS-AI-Group10/gaurdrail_system_demo)
+* 🔗 Notebooks: `[Click Here](https://github.com/23f1002451/Group-10-DS-and-AI-Lab-Project/tree/8fc399458171e525c11883119b4827080c51a57e/notebooks)
 
 ---
 
@@ -65,7 +63,7 @@ The application is deployed as an interactive web interface where users can subm
 
 Detailed technical and user-level documentation is available here:
 
-* 📘 `/docs/` *(covers setup, pipeline, architecture, and usage)*
+* 📘 `/docs/` 
 
 ---
 
