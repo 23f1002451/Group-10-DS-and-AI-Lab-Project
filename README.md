@@ -94,13 +94,28 @@ python src/evaluate.py \
   --output-samples eval_outputs/test_samples.json
 ```
 
-### 5. Launch Streamlit Demo
+### 5. Launch the Application (Backend + Frontend)
 
+The application is split into a **FastAPI backend** (`api/backend.py`) and a **Streamlit frontend** (`app/app.py`).  Start them in two separate terminals:
+
+**Terminal 1 — Backend**
 ```bash
-streamlit run app/app.py -- --checkpoint models/final_model.pt
+python api/backend.py
 ```
+> When the backend starts it will prompt you for your **OpenRouter API key** if `OPENROUTER_API_KEY` is not already set in the environment.  
+> A free key can be obtained at <https://openrouter.ai/keys>.  
+> Press Enter without a key to run in DeBERTa Analysis Mode (guardrail-only, no LLM responses).
 
-Set `GEMINI_API_KEY` environment variable for live LLM responses, or the demo will use simulated responses.
+**Terminal 2 — Frontend**
+```bash
+streamlit run app/app.py
+```
+> The Streamlit UI starts on **http://localhost:8501** and connects automatically to the backend on **http://localhost:8000**.  
+> To point the frontend at a different backend host, set the `BACKEND_URL` environment variable:
+> ```bash
+> set BACKEND_URL=http://your-backend-host:8000   # Windows
+> export BACKEND_URL=http://your-backend-host:8000 # Linux/macOS
+> ```
 
 ## Dataset
 

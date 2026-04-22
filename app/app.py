@@ -2,26 +2,34 @@
 Streamlit Chat Interface — LLM Guardrail Demo (Group 10)
 
 The guardrail decision (label, confidence, layer, probabilities) is the
-PRODUCT.  It is always shown regardless of whether a Gemini API key exists.
+PRODUCT.  It is always shown regardless of whether an OpenRouter API key exists.
 
-Runtime modes (auto-selected by src/backend_service.py):
-  FULL MODE    — trained checkpoint loaded (Layer 0 + Layer 1 + Layer 2)
-  REGEX-ONLY   — no checkpoint; Layer 0 regex rules only; no API key needed
-  BYPASS       — user disabled the guardrail toggle
+Architecture:
+    Frontend  →  app/app.py           (this file — Streamlit UI)
+    Backend   →  api/backend.py       (FastAPI REST server on :8000)
 
-Run locally:
-    streamlit run app/app.py
+Start order:
+    1. python api/backend.py          # prompts for OpenRouter key, starts on :8000
+    2. streamlit run app/app.py       # starts the Streamlit UI on :8501
+
+The BACKEND_URL environment variable overrides the default http://localhost:8000
+if the backend is running on a different host/port.
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
+import requests
 import streamlit as st
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
+
+# ── Backend URL config ────────────────────────────────────────────────────
+_BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000").rstrip("/")
 
 
 # ── Page config (must be the very first Streamlit call) ───────────────────
@@ -39,16 +47,55 @@ st.markdown(
 )
 
 
-# ── Backend (loaded once per process, cached across reruns) ───────────────
-@st.cache_resource(show_spinner="⏳ Loading guardrail system…")
-def _load_service():
-    from src.config import AppConfig
-    from src.backend_service import GuardrailService
-    return GuardrailService(AppConfig.from_env())
+# ── API helpers (cached once per process) ─────────────────────────────────
+
+@st.cache_resource(show_spinner="⏳ Connecting to guardrail backend…")
+def _get_backend_status() -> dict:
+    """Fetch /status from the FastAPI backend.  Raises on connection failure."""
+    try:
+        resp = requests.get(f"{_BACKEND_URL}/status", timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except requests.exceptions.ConnectionError:
+        st.error(
+            f"❌ Cannot reach the backend at **{_BACKEND_URL}**.\n\n"
+            "Start the backend first:\n```\npython api/backend.py\n```"
+        )
+        st.stop()
+    except Exception as exc:
+        st.error(f"❌ Backend error: {exc}")
+        st.stop()
 
 
-service = _load_service()
-_st = service.status
+def _classify(prompt: str, guardrail_enabled: bool) -> dict:
+    """POST /classify and return the result dict."""
+    resp = requests.post(
+        f"{_BACKEND_URL}/classify",
+        json={"prompt": prompt, "guardrail_enabled": guardrail_enabled},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _session_summary() -> dict:
+    """GET /session-summary and return the stats dict."""
+    try:
+        resp = requests.get(f"{_BACKEND_URL}/session-summary", timeout=5)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return {}
+
+
+# ── Connect to backend ────────────────────────────────────────────────────
+backend = _get_backend_status()
+_mode         = backend.get("mode", "regex_only")
+_pipeline_ok  = backend.get("pipeline_ok", False)
+_pipeline_err = backend.get("pipeline_error")
+_llm_live     = backend.get("llm_live", False)
+_llm_status   = backend.get("llm_status", "")
+_ckpt_path    = backend.get("checkpoint_path", "")
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -63,20 +110,20 @@ with st.sidebar:
     st.divider()
     st.subheader("🔧 Guardrail Mode")
 
-    if service.mode == "full":
+    if _mode == "full":
         st.success("✅ **FULL MODE** — mDeBERTa + regex (all 3 layers)")
-        st.caption(f"Checkpoint: `{Path(_st.checkpoint_path).name}`")
-    elif service.mode == "regex_only":
+        st.caption(f"Checkpoint: `{Path(_ckpt_path).name}`")
+    elif _mode == "regex_only":
         st.info("ℹ️ **REGEX-ONLY MODE** — Layer 0 rules (no checkpoint)")
         st.caption("Train the model and place `final_model.pt` in `models/` to enable the neural classifier.")
-        if _st.pipeline_error:
+        if _pipeline_err:
             with st.expander("Why? (expand for details)"):
-                st.code(_st.pipeline_error, language="text")
+                st.code(_pipeline_err, language="text")
 
     st.divider()
     st.subheader("🤖 Response Mode")
-    if _st.llm_live:
-        st.success(f"✅ {_st.llm_status}")
+    if _llm_live:
+        st.success(f"✅ {_llm_status}")
         st.caption("OpenRouter LLM responds after guardrail passes the prompt.")
     else:
         st.info("📊 **DeBERTa Analysis Mode**")
@@ -86,7 +133,7 @@ with st.sidebar:
             "are shown for every prompt.  This is the actual product."
         )
 
-    if service.mode == "regex_only":
+    if _mode == "regex_only":
         st.divider()
         st.subheader("🏋️ Train Neural Classifier")
         st.caption(
@@ -94,7 +141,7 @@ with st.sidebar:
             "Click below to fine-tune mDeBERTa on `data/small/` (~10 min on CPU)."
         )
         if st.button("▶ Train Now", use_container_width=True):
-            import subprocess, sys
+            import subprocess
             st.info("Training started… watch the terminal for progress.")
             try:
                 subprocess.Popen(
@@ -105,7 +152,7 @@ with st.sidebar:
                         "--output-dir", "models",
                         "--epochs", "5",
                     ],
-                    cwd=str(Path(__file__).resolve().parents[1]),
+                    cwd=str(_PROJECT_ROOT),
                 )
                 st.success(
                     "Training process launched.  "
@@ -132,7 +179,7 @@ Response
 ```
 """)
 
-    summary = service.get_session_summary()
+    summary = _session_summary()
     if summary.get("total", 0) > 0:
         st.divider()
         st.subheader("📊 Session Stats")
@@ -208,7 +255,7 @@ st.caption("Inference-Time Guardrails for Mitigating Prompt Jailbreak Attacks �
 
 if not guardrail_enabled:
     st.warning("⚠️ Guardrail **disabled** — prompts go directly to the LLM.")
-elif service.mode == "regex_only":
+elif _mode == "regex_only":
     st.info(
         "📊 **Analysis Mode** (Regex Layer 0) — the guardrail verdict is the response.\n\n"
         "Try *'ignore all previous instructions'* or *'how to build a bomb'* → **BLOCK**.\n"
@@ -233,7 +280,13 @@ if user_input := st.chat_input("Type a message — try benign, jailbreak, or har
     with st.chat_message("assistant"):
         with st.spinner("Processing through guardrail…"):
             try:
-                result = service.process_message(user_input, guardrail_enabled=guardrail_enabled)
+                result = _classify(user_input, guardrail_enabled=guardrail_enabled)
+            except requests.exceptions.ConnectionError:
+                st.error(
+                    f"❌ Lost connection to backend at **{_BACKEND_URL}**. "
+                    "Is `python api/backend.py` still running?"
+                )
+                st.stop()
             except Exception as exc:
                 st.error(f"Backend error: {exc}")
                 st.stop()
