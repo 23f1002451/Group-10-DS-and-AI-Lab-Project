@@ -1,19 +1,19 @@
 """Training module for the mDeBERTa-v3-base guardrail classifier.
 
 Implements the fixed-configuration training loop derived from the
-100-trial hyperparameter search documented in Final_HPT.ipynb.
+99-trial hyperparameter search documented in mdeberta HPT.ipynb.
 
 Final hyperparameters (FINAL_CONFIG):
     MAX_LENGTH              : 512
     BATCH_SIZE              : 4
     LEARNING_RATE           : 3e-5
     WEIGHT_DECAY            : 0.01
-    WARMUP_RATIO            : 0.1
-    DROPOUT                 : 0.3
-    GRADIENT_CLIP           : 1.0
-    EPOCHS                  : 15
+    WARMUP_RATIO            : 0.05
+    DROPOUT                 : 0.2
+    GRADIENT_CLIP           : 0.5
+    EPOCHS                  : 10
     EARLY_STOPPING_PATIENCE : 3
-    LABEL_SMOOTHING         : 0.1
+    LABEL_SMOOTHING         : 0.0
 """
 from __future__ import annotations
 
@@ -54,17 +54,17 @@ FINAL_CONFIG = {
     "BATCH_SIZE": 4,
     "LEARNING_RATE": 3e-5,
     "WEIGHT_DECAY": 0.01,
-    "WARMUP_RATIO": 0.1,
-    "DROPOUT": 0.3,
-    "GRADIENT_CLIP": 1.0,
-    "EPOCHS": 15,
+    "WARMUP_RATIO": 0.05,
+    "DROPOUT": 0.2,
+    "GRADIENT_CLIP": 0.5,
+    "EPOCHS": 10,
     "EARLY_STOPPING_PATIENCE": 3,
     "W_F1": 0.3,
     "W_ASR": 0.5,
     "W_FRR": 0.2,
-    "T_BLOCK": 0.8,
-    "T_TRANSFORM": 0.3,
-    "LABEL_SMOOTHING": 0.1,
+    "T_BLOCK": 0.15,
+    "T_TRANSFORM": 0.07,
+    "LABEL_SMOOTHING": 0.0,
 }
 
 
@@ -75,14 +75,14 @@ class TrainConfig:
     output_dir: Path
     model_name: str = "microsoft/mdeberta-v3-base"
     max_length: int = 512
-    epochs: int = 15
+    epochs: int = 10
     batch_size: int = 4
     learning_rate: float = 3e-5
     weight_decay: float = 0.01
-    warmup_ratio: float = 0.1
-    dropout: float = 0.3
-    gradient_clip_norm: float = 1.0
-    label_smoothing: float = 0.1
+    warmup_ratio: float = 0.05
+    dropout: float = 0.2
+    gradient_clip_norm: float = 0.5
+    label_smoothing: float = 0.0
     early_stopping_patience: int = 3
     w_f1: float = 0.3
     w_asr: float = 0.5
