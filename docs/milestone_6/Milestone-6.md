@@ -63,12 +63,13 @@ Full API documentation with request/response schemas and example curl commands i
 
 ### 3.1 Reproducing Training and Evaluation (Kaggle)
 
-The authoritative training and evaluation pipeline is implemented in the Kaggle notebooks. To reproduce the results:
+The authoritative training and evaluation pipeline is implemented in the Kaggle notebooks. This is the strictly preferred and supported method for reproducing all results. To reproduce:
 
-1. Open notebooks/Final Classifier.ipynb on Kaggle.
-2. Enable a T4 GPU accelerator in the notebook settings.
-3. Ensure the required datasets are attached to the notebook (the notebook contains instructions for dataset attachment).
-4. Execute all cells sequentially. The notebook will train the model, perform threshold optimization, and produce the full evaluation with all metrics, confusion matrices, and error analysis.
+1. **Import:** Download `notebooks/Final Classifier.ipynb` from this repository and import it into Kaggle.
+2. **Hardware:** In the Kaggle notebook settings panel, enable a **GPU T4** (or T4 x2) accelerator.
+3. **API Key:** Navigate to the Add-ons menu, select "Secrets", and add a new secret labeled `GEMINI_API_KEY` containing your Gemini API key. Ensure this secret is attached to the notebook session.
+4. **Data:** Ensure the required datasets are attached to the notebook (the notebook contains specific instructions for dataset attachment).
+5. **Execution:** Select "Run All" to execute all cells sequentially. The notebook will automatically train the model, perform threshold optimization, and produce the full evaluation with all metrics, confusion matrices, and error analysis.
 
 The complete process takes approximately 10 to 15 minutes on a T4 GPU.
 
