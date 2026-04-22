@@ -63,3 +63,17 @@ This document tracks the specific tasks and responsibilities handled by each tea
 | **Kondaveeti Muralidhar** | |
 | **S Vasanth Bupathi** | |
 
+---
+
+## Milestone 6: Deployment & Finalization
+**Submission Date:** April 22, 2026
+
+| Team Member | Tasks Handled |
+| :--- | :--- |
+| **Jash** | Implemented Hugging Face Spaces integration and updated Hyperparameter Tuning (HPT) notebooks and documentation. |
+| **Sruthi** | Contributed to Hugging Face Spaces development and interface refinement. |
+| **Anirudh** | |
+| **Kondaveeti Muralidhar** | Managed Hugging Face environment setup and repository configuration. |
+| **S Vasanth Bupathi** | Authored and finalized project documentation and milestone reports. |
+
+
